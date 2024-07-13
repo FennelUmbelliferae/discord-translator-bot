@@ -1,6 +1,7 @@
 ﻿require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const axios = require('axios');
+const http = require('http');
 
 
 const client = new Client({
@@ -118,5 +119,24 @@ client.on('messageCreate', async (message) => {
   }
 
 });
+
+// HTTPサーバーを追加
+const server = http.createServer((req, res) => {
+
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('OK');
+  } else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  }
+
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Health check server running on port ${PORT}`);
+});
+
 
 client.login(process.env.DISCORD_TOKEN);

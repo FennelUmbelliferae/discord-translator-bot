@@ -1,6 +1,9 @@
 # Use an official Node runtime as a parent image
 FROM node:18-alpine
 
+# Install curl and wget for healthchecks
+RUN apk add --no-cache curl wget
+
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
