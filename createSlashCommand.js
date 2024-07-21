@@ -1,5 +1,7 @@
-require('dotenv').config();
-const { Client, ClientApplication } = require("discord.js");
+import { Client } from 'discord.js';
+import * as dotenv from 'dotenv';
+import { LANGUAGES } from './consts.js';
+dotenv.config()
 
 // pingコマンド
 const ping = {
@@ -7,41 +9,11 @@ const ping = {
   description: "疎通確認です。",
 };
 
-// 言語リスト
-// 25個までしか登録できないので、一部を削除
-// full list: https://developers.deepl.com/docs/resources/supported-languages#target-languages
-const LANGUAGES = {
-  'AR': 'アラビア語',
-  'DA': 'デンマーク語',
-  'DE': 'ドイツ語',
-  'EL': 'ギリシャ語',
-  'EN-GB': '英語 (英国)',
-  'ES': 'スペイン語',
-  'FI': 'フィンランド語',
-  'FR': 'フランス語',
-  'HU': 'ハンガリー語',
-  'ID': 'インドネシア語',
-  'IT': 'イタリア語',
-  'JA': '日本語',
-  'KO': '韓国語',
-  'LV': 'ラトビア語',
-  'NB': 'ノルウェー語（ブークモール）',
-  'NL': 'オランダ語',
-  'PL': 'ポーランド語',
-  'PT-BR': 'ポルトガル語（ブラジル）',
-  'RO': 'ルーマニア語',
-  'RU': 'ロシア語',
-  'SK': 'スロバキア語',
-  'SV': 'スウェーデン語',
-  'TR': 'トルコ語',
-  'UK': 'ウクライナ語',
-  'ZH': '中国語（簡体字）'
-};
-
 // 言語リストからchange_languageコマンドの言語選択肢を作成
-const languageChoices = Object.entries(LANGUAGES).map(([key, value]) => ({
-  name: value,
-  value: key
+const langOptions = Object.values(LANGUAGES).map(language => ({
+  type: 5, // BOOLEAN
+  name: language,
+  description: `${language}に翻訳する場合trueを設定`
 }));
 
 // change_languageコマンド
@@ -49,15 +21,8 @@ const changeLang = {
 
   name: "change_language",
   description: "翻訳言語を変更します。引数なしで現在の設定を表示。",
+  options: langOptions
 
-  options: [
-    {
-      type: 3, // STRING
-      name: "language",
-      description: "どの言語に翻訳するか指定します。",
-      choices: languageChoices,
-    }
-  ]
 };
 
 // get_deepl_limitコマンド

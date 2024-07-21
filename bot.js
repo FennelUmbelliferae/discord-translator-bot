@@ -1,7 +1,9 @@
-﻿require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
-const axios = require('axios');
-const http = require('http');
+﻿import axios from 'axios';
+import { Client, CommandInteraction, GatewayIntentBits, escapeMarkdown } from 'discord.js';
+import * as dotenv from 'dotenv';
+import http from 'http';
+import { LANGUAGES, LANGUAGES_WITH_FLAGS } from './consts.js';
+dotenv.config()
 
 
 const client = new Client({
@@ -10,30 +12,15 @@ const client = new Client({
   ],
 });
 
-const LANGUAGES = {
-  'BG': '🇧🇬 ブルガリア語', 'CS': '🇨🇿 チェコ語', 'DA': '🇩🇰 デンマーク語',
-  'DE': '🇩🇪 ドイツ語', 'EL': '🇬🇷 ギリシャ語', 'EN': '🇬🇧 英語',
-  'ES': '🇪🇸 スペイン語', 'ET': '🇪🇪 エストニア語', 'FI': '🇫🇮 フィンランド語',
-  'FR': '🇫🇷 フランス語', 'HU': '🇭🇺 ハンガリー語', 'ID': '🇮🇩 インドネシア語',
-  'IT': '🇮🇹 イタリア語', 'JA': '🇯🇵 日本語', 'KO': '🇰🇷 韓国語',
-  'LT': '🇱🇹 リトアニア語', 'LV': '🇱🇻 ラトビア語', 'NB': '🇳🇴 ノルウェー語',
-  'NL': '🇳🇱 オランダ語', 'PL': '🇵🇱 ポーランド語', 'PT': '🇵🇹 ポルトガル語',
-  'RO': '🇷🇴 ルーマニア語', 'RU': '🇷🇺 ロシア語', 'SK': '🇸🇰 スロバキア語',
-  'SL': '🇸🇮 スロベニア語', 'SV': '🇸🇪 スウェーデン語', 'TR': '🇹🇷 トルコ語',
-  'UK': '🇺🇦 ウクライナ語', 'ZH': '🇨🇳 中国語'
-};
-
 let selectedLanguages = ['JA', 'KO'];
 
 const getDeepLLimit = async () => {
 
   const response = await axios.post(
     'https://api-free.deepl.com/v2/usage',
-
     new URLSearchParams({
       auth_key: process.env.DEEPL_API_KEY,
     }),
-
     {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -52,28 +39,6 @@ client.on('messageCreate', async (message) => {
 
   if (message.author.bot) return;
 
-  if (message.content.startsWith('!translate')) {
-
-    const args = message.content.split(' ').slice(1);
-    if (args.length === 0) {
-      const currentLangs = selectedLanguages.map(lang => LANGUAGES[lang]).join(', ');
-      const availableLangs = Object.entries(LANGUAGES).map(([code, name]) => `${code}: ${name}`).join('\n');
-      await message.channel.send(`現在の翻訳言語: ${currentLangs}\n\n言語を変更するには: !translate [言語コード] [言語コード] ...\n\n利用可能な言語コード:\n${availableLangs}`);
-      return;
-    }
-
-    const validLanguages = args.filter(lang => LANGUAGES.hasOwnProperty(lang.toUpperCase()));
-    if (validLanguages.length > 0) {
-      selectedLanguages = validLanguages.map(lang => lang.toUpperCase());
-      const newLangs = selectedLanguages.map(lang => LANGUAGES[lang]).join(', ');
-      await message.channel.send(`翻訳言語を以下に設定しました: ${newLangs}`);
-    } else {
-      await message.channel.send('有効な言語コードが指定されていません。');
-    }
-
-    return;
-  }
-
   try {
 
     const translations = await Promise.all(
@@ -91,19 +56,20 @@ client.on('messageCreate', async (message) => {
             },
           }
         );
-        return `${LANGUAGES[lang].split(' ')[0]} ${lang}: ${response.data.translations[0].text}`;
+        return `${LANGUAGES_WITH_FLAGS[lang].split(' ')[0]} ${lang}: ${response.data.translations[0].text}`;
       })
     );
 
     const deepLLimit = await getDeepLLimit();
     const timestamp = "<t:" + String(Math.round(message.createdAt.getTime() / 1000)) + ":f>";
-    const translatedMessage =
-      `Sender: ${message.author}\n` +
-      `Sent Time: ${timestamp}\n` +
-      `\n` +
-      `${translations.join('\n\n')}\n` +
-      `\n` +
-      `Translation Limit: ${deepLLimit.character_count} / ${deepLLimit.character_limit}`;
+    const translatedMessage = [
+      `Sender: ${message.author}`,
+      `Sent Time: ${timestamp}`,
+      "",
+      `${translations.join('\n\n')}`,
+      "",
+      `Translation Limit: ${deepLLimit.character_count} / ${deepLLimit.character_limit}`
+    ].join('\n');
 
     const options = {
       content: translatedMessage,
@@ -118,6 +84,78 @@ client.on('messageCreate', async (message) => {
     await message.channel.send('申し訳ありません、翻訳中にエラーが発生しました。');
   }
 
+});
+
+// それぞれのコマンドの処理を定義
+const commands = {
+  /**
+    *
+    * @param {CommandInteraction} interaction
+    * @returns
+  */
+
+  async ping(interaction) {
+
+    const now = Date.now();
+    const msg = [
+      `gateway: ${await interaction.client.ws.ping}ms`,
+    ];
+
+    await interaction.reply({ content: msg.join("\n"), ephemeral: true });
+    return await interaction.editReply([...msg, `往復: ${Date.now() - now}ms`].join("\n"));
+
+  },
+
+  async change_language(interaction) {
+
+    const options = interaction.options.data;
+
+    if (options.length === 0) {
+
+      const currentLangs = selectedLanguages.map(lang => LANGUAGES_WITH_FLAGS[lang]).join(',\n');
+      const availableLangs = Object.entries(LANGUAGES_WITH_FLAGS).map(([code, name]) => `${code}: ${name}`).join('\n');
+
+      return await interaction.reply({
+        content: escapeMarkdown([
+          "現在の設定:",
+          `${currentLangs}`,
+          "",
+          `利用可能な言語:`,
+          `${availableLangs}`,
+        ].join('\n')),
+        ephemeral: true,
+      });
+
+    }
+
+    const optionsLangsInJA = options.filter(option => option.value).map(option => option.name);
+
+    selectedLanguages = optionsLangsInJA.map(lang => {
+      // LANGUAGESオブジェクトのエントリを探し、値が一致するキーを返す
+      return Object.keys(LANGUAGES).find(key => LANGUAGES[key] === lang);
+    });
+
+    return await interaction.reply([
+      "言語を変更しました:",
+      `${selectedLanguages.map(lang => LANGUAGES_WITH_FLAGS[lang]).join(',\n')}`
+    ].join('\n'));
+  },
+
+  async get_deepl_limit(interaction) {
+    const deepLLimit = await getDeepLLimit();
+    return await interaction.reply(`DeepLのAPI使用量: ${deepLLimit.character_count} / ${deepLLimit.character_limit}`);
+  },
+};
+
+async function onInteraction(interaction) {
+
+  if (!interaction.isChatInputCommand()) return;
+  return commands[interaction.commandName](interaction);
+
+}
+
+client.on("interactionCreate", interaction => {
+  onInteraction(interaction).catch(err => console.error(err));
 });
 
 // HTTPサーバーを追加
@@ -139,4 +177,12 @@ server.listen(PORT, () => {
 });
 
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.DISCORD_TOKEN_TEST);
+
+process.on('SIGINT', async function () {
+  console.log("Caught interrupt signal");
+
+  await client.destroy();
+  server.close();
+  process.exit(0);
+});
