@@ -1,7 +1,5 @@
+require('dotenv').config();
 const { Client, ClientApplication } = require("discord.js");
-
-// 環境変数からトークンを取得
-client.token = process.env.DISCORD_TOKEN_TEST;
 
 // pingコマンド
 const ping = {
@@ -10,17 +8,15 @@ const ping = {
 };
 
 // 言語リスト
+// 25個までしか登録できないので、一部を削除
+// full list: https://developers.deepl.com/docs/resources/supported-languages#target-languages
 const LANGUAGES = {
   'AR': 'アラビア語',
-  'BG': 'ブルガリア語',
-  'CS': 'チェコ語',
   'DA': 'デンマーク語',
   'DE': 'ドイツ語',
   'EL': 'ギリシャ語',
   'EN-GB': '英語 (英国)',
-  'EN-US': '英語 (米国)',
   'ES': 'スペイン語',
-  'ET': 'エストニア語',
   'FI': 'フィンランド語',
   'FR': 'フランス語',
   'HU': 'ハンガリー語',
@@ -28,59 +24,50 @@ const LANGUAGES = {
   'IT': 'イタリア語',
   'JA': '日本語',
   'KO': '韓国語',
-  'LT': 'リトアニア語',
   'LV': 'ラトビア語',
   'NB': 'ノルウェー語（ブークモール）',
   'NL': 'オランダ語',
   'PL': 'ポーランド語',
   'PT-BR': 'ポルトガル語（ブラジル）',
-  'PT-PT': 'ポルトガル語（ブラジル以外）',
   'RO': 'ルーマニア語',
   'RU': 'ロシア語',
   'SK': 'スロバキア語',
-  'SL': 'スロベニア語',
   'SV': 'スウェーデン語',
   'TR': 'トルコ語',
   'UK': 'ウクライナ語',
   'ZH': '中国語（簡体字）'
 };
 
-// 言語リストからchangeLanguageコマンドの言語選択肢を作成
+// 言語リストからchange_languageコマンドの言語選択肢を作成
 const languageChoices = Object.entries(LANGUAGES).map(([key, value]) => ({
   name: value,
   value: key
 }));
 
-// changeLanguageコマンド
+// change_languageコマンド
 const changeLang = {
 
-  name: "changeLanguage",
-  description: "翻訳言語を変更します。",
+  name: "change_language",
+  description: "翻訳言語を変更します。引数なしで現在の設定を表示。",
 
   options: [
     {
-      type: "STRING",
+      type: 3, // STRING
       name: "language",
       description: "どの言語に翻訳するか指定します。",
-      required: true,
       choices: languageChoices,
     }
   ]
 };
 
-// getDeepLLimitコマンド
+// get_deepl_limitコマンド
 const getDeepLLimit = {
-  name: "getDeepLLimit",
+  name: "get_deepl_limit",
   description: "DeepLのAPI使用量を確認します。",
 };
 
 // コマンドリスト
 const commands = [ping, changeLang, getDeepLLimit];
-
-// クライアントのインスタンスを生成
-const client = new Client({
-  intents: 0,
-});
 
 // コマンドを登録する関数
 async function register(client, commands, guildID) {
@@ -94,12 +81,27 @@ async function register(client, commands, guildID) {
 // メイン処理
 async function main() {
 
-  client.application = new ClientApplication(client, {});
-  await client.application.fetch();
+  // クライアントのインスタンスを生成
+  const client = new Client({
+    intents: 0,
+  });
 
-  // コマンドを登録
-  await register(client, commands, process.argv[2]);
-  console.log("registration succeed!");
+  // 環境変数からトークンを取得し、クライアントにログイン
+  const token = process.env.DISCORD_TOKEN_TEST;
+  await client.login(token);
+
+  // クライアントが準備完了するのを待つ
+  client.once('ready', async () => {
+
+    console.log(`Logged in as ${client.user.tag}!`);
+
+    // コマンドを登録
+    await register(client, commands, null);
+    console.log("registration succeed!");
+
+    client.destroy();
+
+  });
 
 }
 
