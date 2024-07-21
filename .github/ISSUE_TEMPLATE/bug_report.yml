@@ -1,0 +1,46 @@
+name: バグ報告
+description: アプリケーションで見つかったバグを報告してください。
+labels: bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## バグの詳細
+
+  - type: input
+    id: summary
+    attributes:
+      label: 概要
+      description: バグの簡単な説明
+      placeholder: 例：アプリがクラッシュする
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: 再現手順
+      description: バグを再現するための手順を詳細に記入してください
+      placeholder: |
+        1. アプリを起動する
+        2. 設定画面を開く
+        3. 「保存」をクリックする
+        4. エラーメッセージが表示される
+
+  - type: input
+    id: expected-result
+    attributes:
+      label: 期待される結果
+      description: バグが発生しない場合に期待される結果
+      placeholder: 例：設定が正常に保存される
+
+  - type: input
+    id: actual-result
+    attributes:
+      label: 実際の結果
+      description: バグが発生した場合の実際の結果
+      placeholder: 例：アプリがクラッシュする
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: 補足情報
+      description: スクリーンショットやエラーメッセージなど、補足情報があれば記入してください

@@ -1,0 +1,37 @@
+name: リクエスト
+description: 追加してほしい機能や改良点を提案してください。
+labels: enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 機能リクエストの詳細
+
+  - type: input
+    id: summary
+    attributes:
+      label: 概要
+      description: 提案する機能の簡単な説明
+      placeholder: 例：新しい検索機能の追加
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 詳細な説明
+      description: 提案する機能の詳細な説明を記入してください
+      placeholder: |
+        現在の検索機能では、特定のフィルターが利用できないため、
+        より詳細なフィルタリング機能を追加してほしい。
+
+  - type: input
+    id: use-case
+    attributes:
+      label: 利用ケース
+      description: 提案する機能の利用ケースを記入してください
+      placeholder: 例：ユーザーが特定のカテゴリのみを検索できるようにする
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: 補足情報
+      description: 補足情報や関連するスクリーンショットがあれば記入してください

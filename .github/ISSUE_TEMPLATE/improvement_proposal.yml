@@ -1,0 +1,37 @@
+name: 改善提案
+description: 現在の機能の改善点を提案してください。
+labels: improve
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 改善提案の詳細
+
+  - type: input
+    id: summary
+    attributes:
+      label: 概要
+      description: 提案する改善点の簡単な説明
+      placeholder: 例：UIの改善
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 詳細な説明
+      description: 提案する改善点の詳細な説明を記入してください
+      placeholder: |
+        現在のUIデザインはユーザーフレンドリーではないため、
+        ボタンの配置や色を変更してユーザーエクスペリエンスを向上させたい。
+
+  - type: input
+    id: benefit
+    attributes:
+      label: 改善の利点
+      description: 提案する改善がどのように役立つかを記入してください
+      placeholder: 例：ユーザーの操作が直感的になり、利用頻度が増える
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: 補足情報
+      description: 補足情報や関連するスクリーンショットがあれば記入してください

@@ -1,0 +1,28 @@
+name: 質問用
+description: プロジェクトに関する質問をしてください。
+labels: question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 質問の詳細
+
+  - type: input
+    id: question
+    attributes:
+      label: 質問
+      description: 質問の内容を簡単に記入してください
+      placeholder: 例：この機能はどのように動作しますか？
+
+  - type: textarea
+    id: details
+    attributes:
+      label: 詳細な説明
+      description: 質問に関する詳細な説明や背景を記入してください
+      placeholder: 例：ドキュメントに記載のない特定の機能の動作について教えてください。
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: 補足情報
+      description: 補足情報や関連するスクリーンショットがあれば記入してください
