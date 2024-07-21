@@ -52,8 +52,8 @@ async function main() {
   });
 
   // 環境変数からトークンを取得し、クライアントにログイン
-  const token = process.env.DISCORD_TOKEN;
-  await client.login(token);
+  const TOKEN = process.env.NODE_ENV === 'production' ? process.env.DISCORD_TOKEN : process.env.DISCORD_TOKEN_TEST;
+  await client.login(TOKEN);
 
   // クライアントが準備完了するのを待つ
   client.once('ready', async () => {

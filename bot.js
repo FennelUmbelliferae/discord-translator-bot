@@ -177,7 +177,8 @@ server.listen(PORT, () => {
 });
 
 
-client.login(process.env.DISCORD_TOKEN);
+const DISCORD_TOKEN = process.env.NODE_ENV === 'production' ? process.env.DISCORD_TOKEN : process.env.DISCORD_TOKEN_TEST;
+client.login(DISCORD_TOKEN);
 
 process.on('SIGINT', async function () {
   console.log("Caught interrupt signal");
