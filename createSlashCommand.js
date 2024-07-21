@@ -52,7 +52,7 @@ async function main() {
   });
 
   // 環境変数からトークンを取得し、クライアントにログイン
-  const token = process.env.DISCORD_TOKEN_TEST;
+  const token = process.env.DISCORD_TOKEN;
   await client.login(token);
 
   // クライアントが準備完了するのを待つ
