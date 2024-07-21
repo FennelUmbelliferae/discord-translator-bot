@@ -177,7 +177,7 @@ server.listen(PORT, () => {
 });
 
 
-client.login(process.env.DISCORD_TOKEN_TEST);
+client.login(process.env.DISCORD_TOKEN);
 
 process.on('SIGINT', async function () {
   console.log("Caught interrupt signal");
