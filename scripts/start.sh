@@ -3,5 +3,8 @@
 # Ensure the script fails on any error
 set -e
 
+# Change to the project root directory
+cd "$(dirname "$0")/.."
+
 # Run your application
-node bot.js
+node src/bot.js
