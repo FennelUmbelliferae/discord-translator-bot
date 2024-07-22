@@ -1,6 +1,7 @@
 ﻿import axios from 'axios';
 import { Client, CommandInteraction, GatewayIntentBits, escapeMarkdown } from 'discord.js';
 import * as dotenv from 'dotenv';
+import { readFileSync, writeFileSync } from 'fs';
 import http from 'http';
 import { LANGUAGES, LANGUAGES_WITH_FLAGS } from './consts.js';
 dotenv.config()
@@ -12,7 +13,16 @@ const client = new Client({
   ],
 });
 
-let selectedLanguages = ['JA', 'KO'];
+const CONFIG_FILE_PATH = './config/config.json';
+const getConfig = async () => {
+  return JSON.parse(readFileSync(CONFIG_FILE_PATH, 'utf8'));
+}
+const setConfig = async (config) => {
+  writeFileSync(CONFIG_FILE_PATH, JSON.stringify(config, null, 2));
+}
+
+let config = await getConfig();
+let selectedLanguages = config.selectedLanguages;
 
 const getDeepLLimit = async () => {
 
@@ -134,6 +144,9 @@ const commands = {
       // LANGUAGESオブジェクトのエントリを探し、値が一致するキーを返す
       return Object.keys(LANGUAGES).find(key => LANGUAGES[key] === lang);
     });
+
+    config.selectedLanguages = selectedLanguages;
+    await setConfig(config);
 
     return await interaction.reply([
       "言語を変更しました:",
