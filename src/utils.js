@@ -8,7 +8,12 @@ function escapeMarkdown(text) {
 
 // Config management functions
 function getConfig() {
-  return JSON.parse(readFileSync(CONFIG_FILE_PATH, 'utf8'));
+  try {
+    return JSON.parse(readFileSync(CONFIG_FILE_PATH, 'utf8'));
+  } catch (error) {
+    console.error(`Failed to load configuration from ${CONFIG_FILE_PATH}:`, error.message);
+    return { selectedLanguages: ['JA', 'KO'], skipTranslationPrefix: ';' }; // Default config
+  }
 }
 
 function setConfig(config) {
