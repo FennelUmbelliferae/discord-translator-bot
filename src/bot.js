@@ -27,6 +27,7 @@ const setConfig = (config) => {
 
 let config = getConfig();
 let selectedLanguages = config.selectedLanguages;
+let skipTranslationPrefix = config.skipTranslationPrefix || ';';
 
 const getDeepLLimit = async () => {
   const response = await axios.post(
@@ -43,6 +44,12 @@ client.on('ready', () => {
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
+  
+  // Skip translation if message starts with the skip prefix
+  if (message.content.startsWith(skipTranslationPrefix)) {
+    console.log(`Skipping translation for message: ${message.content}`);
+    return;
+  }
 
   try {
     const translations = await Promise.all(
@@ -123,6 +130,31 @@ const commands = {
     const deepLLimit = await getDeepLLimit();
     await interaction.reply(`DeepLのAPI使用量: ${deepLLimit.character_count} / ${deepLLimit.character_limit}`);
   },
+
+  async skip_prefix(interaction) {
+    const options = interaction.options.data;
+
+    if (options.length === 0) {
+      return await interaction.reply({
+        content: `現在の翻訳スキッププレフィックス: \`${skipTranslationPrefix}\`\n\n使い方: メッセージの先頭に \`${skipTranslationPrefix}\` をつけると翻訳されません。`,
+        ephemeral: true
+      });
+    }
+
+    const newPrefix = options.find(option => option.name === 'prefix')?.value;
+    if (newPrefix) {
+      skipTranslationPrefix = newPrefix;
+      config.skipTranslationPrefix = newPrefix;
+      setConfig(config);
+      await interaction.reply(`翻訳スキッププレフィックスを \`${newPrefix}\` に変更しました。`);
+    } else {
+      // Handle case when prefix option is missing
+      await interaction.reply({
+        content: `エラー: 'prefix' オプションが見つかりませんでした。プレフィックスを指定してください。`,
+        ephemeral: true
+      });
+    }
+  }
 };
 
 client.on('interactionCreate', (interaction) => {
