@@ -18,11 +18,9 @@ const langOptions = Object.values(LANGUAGES).map(language => ({
 
 // change_languageコマンド
 const changeLang = {
-
   name: "change_language",
   description: "翻訳言語を変更します。引数なしで現在の設定を表示。",
   options: langOptions
-
 };
 
 // get_deepl_limitコマンド
@@ -31,21 +29,31 @@ const getDeepLLimit = {
   description: "DeepLのAPI使用量を確認します。",
 };
 
+// skip_prefixコマンド
+const skipPrefix = {
+  name: "skip_prefix",
+  description: "翻訳をスキップするプレフィックスを設定します。引数なしで現在の設定を表示。",
+  options: [
+    {
+      type: 3, // STRING
+      name: "prefix",
+      description: "翻訳をスキップするプレフィックス記号（例: ;）",
+      required: false
+    }
+  ]
+};
+
 // コマンドリスト
-const commands = [ping, changeLang, getDeepLLimit];
+const commands = [ping, changeLang, getDeepLLimit, skipPrefix];
 
 // コマンドを登録する関数
 async function register(client, commands, guildID) {
-
   if (guildID == null) return client.application.commands.set(commands);
-
   return client.application.commands.set(commands, guildID);
-
 }
 
 // メイン処理
 async function main() {
-
   // クライアントのインスタンスを生成
   const client = new Client({
     intents: 0,
@@ -57,7 +65,6 @@ async function main() {
 
   // クライアントが準備完了するのを待つ
   client.once('ready', async () => {
-
     console.log(`Logged in as ${client.user.tag}!`);
 
     // コマンドを登録
@@ -65,9 +72,7 @@ async function main() {
     console.log("registration succeed!");
 
     client.destroy();
-
   });
-
 }
 
 // メイン処理を実行
