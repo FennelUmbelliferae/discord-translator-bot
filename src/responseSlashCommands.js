@@ -1,11 +1,12 @@
+import { MessageFlags } from 'discord.js';
 import * as dotenv from 'dotenv';
 import { LANGUAGES, LANGUAGES_WITH_FLAGS } from './consts.js';
-import { 
-  escapeMarkdown, 
-  getSelectedLanguages, 
-  setSelectedLanguages, 
-  getSkipTranslationPrefix, 
-  setSkipTranslationPrefix 
+import {
+  escapeMarkdown,
+  getSelectedLanguages,
+  getSkipTranslationPrefix,
+  setSelectedLanguages,
+  setSkipTranslationPrefix
 } from './utils.js';
 dotenv.config()
 
@@ -38,7 +39,7 @@ const commands = {
       `gateway: ${await interaction.client.ws.ping}ms`,
     ];
 
-    await interaction.reply({ content: msg.join("\n"), ephemeral: true });
+    await interaction.reply({ content: msg.join("\n"), flags: MessageFlags.Ephemeral });
     return await interaction.editReply([...msg, `往復: ${Date.now() - now}ms`].join("\n"));
   },
 
@@ -57,7 +58,7 @@ const commands = {
           `利用可能な言語:`,
           `${availableLangs}`,
         ].join('\n')),
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -84,7 +85,7 @@ const commands = {
     if (options.length === 0) {
       return await interaction.reply({
         content: `現在の翻訳スキッププレフィックス: \`${skipTranslationPrefix}\`\n\n使い方: メッセージの先頭に \`${skipTranslationPrefix}\` をつけると翻訳されません。`,
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
@@ -96,7 +97,7 @@ const commands = {
       // Handle case when prefix option is missing
       return await interaction.reply({
         content: `エラー: 'prefix' オプションが見つかりませんでした。プレフィックスを指定してください。`,
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
   }
@@ -107,5 +108,5 @@ async function onInteraction(interaction) {
   return commands[interaction.commandName](interaction);
 }
 
-export { onInteraction, getDeepLLimit };
+export { getDeepLLimit, onInteraction };
 

@@ -1,7 +1,7 @@
+# Discord Translator Bot
+
 > [!IMPORTANT]
 > This README was created by LLM
-
-# Discord Translator Bot
 
 このDiscord Botは、DeepL APIを使用してDiscordサーバー内のメッセージを複数の言語に自動的に翻訳するボットです。
 
@@ -20,7 +20,7 @@
 1. リポジトリをクローン：
 
    ``` sh
-   git clone https://github.com/yourusername/discord-translator-bot.git
+   git clone https://github.com/FennelUmbelliferae/discord-translator-bot.git
    cd discord-translator-bot
    ```
 
@@ -50,7 +50,7 @@
 1. リポジトリをクローン：
 
    ``` sh
-   git clone https://github.com/yourusername/discord-translator-bot.git
+   git clone https://github.com/FennelUmbelliferae/discord-translator-bot.git
    cd discord-translator-bot
    ```
 

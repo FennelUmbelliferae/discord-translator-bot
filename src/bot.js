@@ -1,14 +1,14 @@
 ﻿import axios from 'axios';
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, MessageFlags } from 'discord.js';
 import * as dotenv from 'dotenv';
 import http from 'http';
 import { LANGUAGES, LANGUAGES_WITH_FLAGS } from './consts.js';
-import { 
-  escapeMarkdown, 
-  getSelectedLanguages, 
-  setSelectedLanguages, 
-  getSkipTranslationPrefix, 
-  setSkipTranslationPrefix 
+import {
+  escapeMarkdown,
+  getSelectedLanguages,
+  getSkipTranslationPrefix,
+  setSelectedLanguages,
+  setSkipTranslationPrefix
 } from './utils.js';
 
 dotenv.config();
@@ -36,7 +36,7 @@ client.on('ready', () => {
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
-  
+
   // Skip translation if message starts with the skip prefix
   const skipTranslationPrefix = getSkipTranslationPrefix();
   if (message.content.startsWith(skipTranslationPrefix)) {
@@ -83,7 +83,7 @@ const commands = {
   async ping(interaction) {
     const now = Date.now();
     const gatewayPing = await interaction.client.ws.ping;
-    await interaction.reply({ content: `gateway: ${gatewayPing}ms`, ephemeral: true });
+    await interaction.reply({ content: `gateway: ${gatewayPing}ms`, flags: MessageFlags.Ephemeral });
     await interaction.editReply(`gateway: ${gatewayPing}ms\n往復: ${Date.now() - now}ms`);
   },
 
@@ -103,7 +103,7 @@ const commands = {
           '利用可能な言語:',
           availableLangs,
         ].join('\n')),
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -132,7 +132,7 @@ const commands = {
     if (options.length === 0) {
       return await interaction.reply({
         content: `現在の翻訳スキッププレフィックス: \`${skipTranslationPrefix}\`\n\n使い方: メッセージの先頭に \`${skipTranslationPrefix}\` をつけると翻訳されません。`,
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
@@ -144,7 +144,7 @@ const commands = {
       // Handle case when prefix option is missing
       await interaction.reply({
         content: `エラー: 'prefix' オプションが見つかりませんでした。プレフィックスを指定してください。`,
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
   }
