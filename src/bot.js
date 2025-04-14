@@ -147,6 +147,12 @@ const commands = {
       config.skipTranslationPrefix = newPrefix;
       setConfig(config);
       await interaction.reply(`翻訳スキッププレフィックスを \`${newPrefix}\` に変更しました。`);
+    } else {
+      // Handle case when prefix option is missing
+      await interaction.reply({
+        content: `エラー: 'prefix' オプションが見つかりませんでした。プレフィックスを指定してください。`,
+        ephemeral: true
+      });
     }
   }
 };
