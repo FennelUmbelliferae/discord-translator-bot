@@ -66,8 +66,7 @@ const commands = {
     const newSelectedLanguages = optionsLangsInJA.map(lang => {
       // LANGUAGESオブジェクトのエントリを探し、値が一致するキーを返す
       return Object.keys(LANGUAGES).find(key => LANGUAGES[key] === lang);
-    });
-
+    }).filter(Boolean);
     setSelectedLanguages(newSelectedLanguages);
 
     return await interaction.reply(`言語を変更しました: ${getSelectedLanguages().map(lang => LANGUAGES_WITH_FLAGS[lang]).join(',\n')}`);
