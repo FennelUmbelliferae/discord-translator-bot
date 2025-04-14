@@ -2,5 +2,6 @@
   "selectedLanguages": [
     "JA",
     "KO"
-  ]
+  ],
+  "skipTranslationPrefix": ";"
 }
