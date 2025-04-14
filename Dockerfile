@@ -2,7 +2,7 @@
 FROM node:18-slim
 
 # Install curl and wget for healthchecks
-RUN apk add --no-cache curl wget
+RUN apt-get update && apt-get install -y curl wget
 
 # Ensure curl and wget are in the PATH
 ENV PATH="/usr/bin:${PATH}"
