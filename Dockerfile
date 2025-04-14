@@ -1,5 +1,5 @@
 # Use an official Node runtime as a parent image
-FROM node:18-alpine
+FROM node:18-slim
 
 # Install curl and wget for healthchecks
 RUN apk add --no-cache curl wget

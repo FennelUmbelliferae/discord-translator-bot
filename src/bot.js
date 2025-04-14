@@ -1,9 +1,15 @@
 ﻿import axios from 'axios';
-import { Client, GatewayIntentBits, escapeMarkdown } from 'discord.js';
+import { Client, GatewayIntentBits } from 'discord.js';
 import * as dotenv from 'dotenv';
-import { readFileSync, writeFileSync } from 'fs';
 import http from 'http';
 import { LANGUAGES, LANGUAGES_WITH_FLAGS } from './consts.js';
+import { 
+  escapeMarkdown, 
+  getSelectedLanguages, 
+  setSelectedLanguages, 
+  getSkipTranslationPrefix, 
+  setSkipTranslationPrefix 
+} from './utils.js';
 
 dotenv.config();
 
@@ -14,19 +20,6 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
   ],
 });
-
-const CONFIG_FILE_PATH = './config/config.json';
-
-const getConfig = () => {
-  return JSON.parse(readFileSync(CONFIG_FILE_PATH, 'utf8'));
-};
-
-const setConfig = (config) => {
-  writeFileSync(CONFIG_FILE_PATH, JSON.stringify(config, null, 2));
-};
-
-let config = getConfig();
-let selectedLanguages = config.selectedLanguages;
 
 const getDeepLLimit = async () => {
   const response = await axios.post(
@@ -43,8 +36,16 @@ client.on('ready', () => {
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
+  
+  // Skip translation if message starts with the skip prefix
+  const skipTranslationPrefix = getSkipTranslationPrefix();
+  if (message.content.startsWith(skipTranslationPrefix)) {
+    console.log(`Skipping translation for message: ${message.content}`);
+    return;
+  }
 
   try {
+    const selectedLanguages = getSelectedLanguages();
     const translations = await Promise.all(
       selectedLanguages.map(async (lang) => {
         const response = await axios.post(
@@ -88,6 +89,7 @@ const commands = {
 
   async change_language(interaction) {
     const options = interaction.options.data;
+    const selectedLanguages = getSelectedLanguages();
 
     if (options.length === 0) {
       const currentLangs = selectedLanguages.map(lang => LANGUAGES_WITH_FLAGS[lang]).join(',\n');
@@ -106,16 +108,15 @@ const commands = {
     }
 
     const optionsLangsInJA = options.filter(option => option.value).map(option => option.name);
-    selectedLanguages = optionsLangsInJA.map(lang => {
+    const newSelectedLanguages = optionsLangsInJA.map(lang => {
       return Object.keys(LANGUAGES).find(key => LANGUAGES[key] === lang);
     });
 
-    config.selectedLanguages = selectedLanguages;
-    setConfig(config);
+    setSelectedLanguages(newSelectedLanguages);
 
     await interaction.reply([
       '言語を変更しました:',
-      selectedLanguages.map(lang => LANGUAGES_WITH_FLAGS[lang]).join(',\n')
+      getSelectedLanguages().map(lang => LANGUAGES_WITH_FLAGS[lang]).join(',\n')
     ].join('\n'));
   },
 
@@ -123,6 +124,30 @@ const commands = {
     const deepLLimit = await getDeepLLimit();
     await interaction.reply(`DeepLのAPI使用量: ${deepLLimit.character_count} / ${deepLLimit.character_limit}`);
   },
+
+  async skip_prefix(interaction) {
+    const options = interaction.options.data;
+    const skipTranslationPrefix = getSkipTranslationPrefix();
+
+    if (options.length === 0) {
+      return await interaction.reply({
+        content: `現在の翻訳スキッププレフィックス: \`${skipTranslationPrefix}\`\n\n使い方: メッセージの先頭に \`${skipTranslationPrefix}\` をつけると翻訳されません。`,
+        ephemeral: true
+      });
+    }
+
+    const newPrefix = options.find(option => option.name === 'prefix')?.value;
+    if (newPrefix) {
+      setSkipTranslationPrefix(newPrefix);
+      await interaction.reply(`翻訳スキッププレフィックスを \`${newPrefix}\` に変更しました。`);
+    } else {
+      // Handle case when prefix option is missing
+      await interaction.reply({
+        content: `エラー: 'prefix' オプションが見つかりませんでした。プレフィックスを指定してください。`,
+        ephemeral: true
+      });
+    }
+  }
 };
 
 client.on('interactionCreate', (interaction) => {
