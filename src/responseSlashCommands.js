@@ -1,22 +1,13 @@
 import * as dotenv from 'dotenv';
-import { readFileSync, writeFileSync } from 'fs';
 import { LANGUAGES, LANGUAGES_WITH_FLAGS } from './consts.js';
-import { escapeMarkdown } from './utils.js';
+import { 
+  escapeMarkdown, 
+  getSelectedLanguages, 
+  setSelectedLanguages, 
+  getSkipTranslationPrefix, 
+  setSkipTranslationPrefix 
+} from './utils.js';
 dotenv.config()
-
-const CONFIG_FILE_PATH = './config/config.json';
-
-const getConfig = () => {
-  return JSON.parse(readFileSync(CONFIG_FILE_PATH, 'utf8'));
-};
-
-const setConfig = (config) => {
-  writeFileSync(CONFIG_FILE_PATH, JSON.stringify(config, null, 2));
-};
-
-let config = getConfig();
-let selectedLanguages = config.selectedLanguages || ['JA', 'KO'];
-let skipTranslationPrefix = config.skipTranslationPrefix || ';';
 
 async function getDeepLLimit() {
   try {
@@ -53,6 +44,7 @@ const commands = {
 
   async change_language(interaction) {
     const options = interaction.options.data;
+    const selectedLanguages = getSelectedLanguages();
 
     if (options.length === 0) {
       const currentLangs = selectedLanguages.map(lang => LANGUAGES_WITH_FLAGS[lang]).join(',\n');
@@ -71,15 +63,14 @@ const commands = {
 
     const optionsLangsInJA = options.filter(option => option.value).map(option => option.name);
 
-    selectedLanguages = optionsLangsInJA.map(lang => {
+    const newSelectedLanguages = optionsLangsInJA.map(lang => {
       // LANGUAGESオブジェクトのエントリを探し、値が一致するキーを返す
       return Object.keys(LANGUAGES).find(key => LANGUAGES[key] === lang);
     });
 
-    config.selectedLanguages = selectedLanguages;
-    setConfig(config);
+    setSelectedLanguages(newSelectedLanguages);
 
-    return await interaction.reply(`言語を変更しました: ${selectedLanguages.map(lang => LANGUAGES_WITH_FLAGS[lang]).join(',\n')}`);
+    return await interaction.reply(`言語を変更しました: ${getSelectedLanguages().map(lang => LANGUAGES_WITH_FLAGS[lang]).join(',\n')}`);
   },
 
   async get_deepl_limit(interaction) {
@@ -89,6 +80,7 @@ const commands = {
 
   async skip_prefix(interaction) {
     const options = interaction.options.data;
+    const skipTranslationPrefix = getSkipTranslationPrefix();
 
     if (options.length === 0) {
       return await interaction.reply({
@@ -99,9 +91,7 @@ const commands = {
 
     const newPrefix = options.find(option => option.name === 'prefix')?.value;
     if (newPrefix) {
-      skipTranslationPrefix = newPrefix;
-      config.skipTranslationPrefix = newPrefix;
-      setConfig(config);
+      setSkipTranslationPrefix(newPrefix);
       return await interaction.reply(`翻訳スキッププレフィックスを \`${newPrefix}\` に変更しました。`);
     } else {
       // Handle case when prefix option is missing
