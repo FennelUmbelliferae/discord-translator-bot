@@ -1,0 +1,17 @@
+{
+  "config": {
+    "default": true,
+    // frontmatter の title を仮想 H1 として扱わない
+    "MD025": { "front_matter_title": "" },
+    // 行長制限は無効（ドキュメントの可読性優先）
+    "MD013": false,
+    // 行頭の Issue 参照（#160 など）を --fix が見出し（# 160）に書き換えるので無効
+    "MD018": false,
+    // インラインHTMLは許可
+    "MD033": false,
+    // テーブルカラムスタイルは無効（フォーマッターの責務）
+    "MD060": false,
+  },
+  // CLAUDE.md is a single-line import of AGENTS.md.
+  "ignores": ["node_modules/**", "CLAUDE.md"],
+}

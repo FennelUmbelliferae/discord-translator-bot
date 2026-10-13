@@ -1,0 +1,25 @@
+pre-commit:
+  piped: true
+  commands:
+    # main へ直コミットすると push 前に気付いても reset とブランチ作り直しの往復になる。
+    # 意図的に行う場合は LEFTHOOK=0 git commit ...
+    00_guard-branch:
+      run: |
+        branch=$(git symbolic-ref --quiet --short HEAD || true)
+        if [ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ]; then exit 0; fi
+        case "$branch" in
+          main|master)
+            echo "main への直コミットは既定で禁止。ブランチを切ること。"
+            echo "意図的に行う場合は LEFTHOOK=0 git commit ..."
+            exit 1 ;;
+        esac
+    01_format:
+      run: bun run format:check
+    02_lint:
+      run: bun run lint
+    03_lint-md:
+      run: bun run lint:md
+    04_typecheck:
+      run: bun run typecheck
+    05_test:
+      run: bun test

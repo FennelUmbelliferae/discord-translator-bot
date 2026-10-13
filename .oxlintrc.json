@@ -1,0 +1,46 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "promise", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "options": {
+    "typeAware": true
+  },
+  "env": {
+    "es2024": true,
+    "node": true
+  },
+  "rules": {
+    "typescript/no-floating-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-explicit-any": "error",
+    "eslint/eqeqeq": "error",
+    "eslint/no-console": "error",
+    "import/no-cycle": "error",
+    "typescript/no-unsafe-type-assertion": "off",
+    "eslint/no-await-in-loop": "off",
+    "eslint/no-unmodified-loop-condition": "off",
+    "oxc/no-map-spread": "off"
+  },
+  "ignorePatterns": ["node_modules/", "dist/", "data/", "coverage/"],
+  "overrides": [
+    {
+      "files": ["src/logger.ts"],
+      "rules": {
+        "eslint/no-console": "off"
+      }
+    },
+    {
+      "files": ["tests/**/*.ts"],
+      "rules": {
+        "typescript/await-thenable": "off",
+        "typescript/no-base-to-string": "off"
+      }
+    }
+  ]
+}

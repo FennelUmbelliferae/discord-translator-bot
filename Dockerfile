@@ -1,28 +1,24 @@
-# Use an official Node runtime as a parent image
-FROM node:18-slim
+FROM oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61 AS base
+WORKDIR /app
 
-# Install curl and wget for healthchecks
-RUN apt-get update && apt-get install -y curl wget
+FROM base AS install
+RUN mkdir -p /temp/prod
+COPY package.json bun.lock /temp/prod/
+# prepare installs development hooks and requires devDependencies.
+RUN cd /temp/prod && bun install --frozen-lockfile --production --ignore-scripts
 
-# Ensure curl and wget are in the PATH
-ENV PATH="/usr/bin:${PATH}"
+FROM base AS release
+COPY --from=install --chown=bun:bun /temp/prod/node_modules node_modules
+COPY --chown=bun:bun src ./src
+COPY --chown=bun:bun package.json .
+RUN mkdir -p /app/data && chown -R bun:bun /app/data
 
-# Set the working directory in the container
-WORKDIR /usr/src/app
+ENV NODE_ENV=production
+ENV CONFIG_PATH=/app/data/config.json
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy the necessary directories and files into the container
-COPY src ./src
-COPY config ./config
-COPY scripts ./scripts
-
-# Make port 3000 available to the world outside this container
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD bun -e "fetch('http://localhost:' + (process.env.PORT ?? '3000') + '/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
-# Run the app when the container launches
-CMD ["node", "src/bot.js"]
+USER bun
+CMD ["bun", "run", "src/index.ts"]

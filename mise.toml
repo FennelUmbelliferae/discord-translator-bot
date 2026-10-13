@@ -1,0 +1,9 @@
+[tools]
+bun = "1.4.2"
+
+[settings]
+env_file = ".env"
+
+[tasks.setup]
+description = "Install dependencies and initialize environment file"
+run = ["bun install", "if [ ! -f .env ]; then cp .env.example .env; fi"]

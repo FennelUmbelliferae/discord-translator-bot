@@ -1,0 +1,59 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:best-practices",
+    "group:allNonMajor",
+    "group:allDigest",
+    ":semanticCommitTypeAll(build)",
+  ],
+  timezone: "Asia/Tokyo",
+  schedule: ["* 0-8 * * 1"],
+  lockFileMaintenance: { enabled: false },
+  vulnerabilityAlerts: { minimumGroupSize: 1 },
+  semanticCommits: "enabled",
+  labels: ["dependencies"],
+  customManagers: [
+    {
+      customType: "regex",
+      managerFilePatterns: ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      matchStrings: [
+        "docker\\.io/rhysd/actionlint:(?<currentValue>\\d+\\.\\d+\\.\\d+)@(?<currentDigest>sha256:[a-f0-9]{64})",
+      ],
+      depNameTemplate: "rhysd/actionlint",
+      datasourceTemplate: "docker",
+    },
+  ],
+  packageRules: [
+    // 供給網対策のクールダウン
+    {
+      matchUpdateTypes: ["major", "minor", "patch", "digest", "pinDigest"],
+      minimumReleaseAge: "3 days",
+    },
+    // bun は mise / Dockerfile / bun-types の 3 経路を 1 本の PR に載せ、CI の drift-check を通す
+    {
+      groupName: "bun toolchain",
+      groupSlug: "bun-toolchain",
+      matchDepNames: ["bun", "oven/bun", "bun-types"],
+      separateMajorMinor: false,
+    },
+    // oxlint / oxfmt / oxlint-tsgolint は同じ oxc リリース列で動くので揃えて上げる
+    {
+      groupName: "oxc toolchain",
+      groupSlug: "oxc-toolchain",
+      matchDepNames: ["oxlint", "oxfmt", "oxlint-tsgolint"],
+      separateMajorMinor: false,
+    },
+    {
+      groupName: "zizmor",
+      groupSlug: "zizmor",
+      matchPackageNames: ["ghcr.io/zizmorcore/zizmor", "zizmorcore/zizmor-action"],
+      minimumGroupSize: 2,
+      separateMajorMinor: false,
+    },
+    {
+      matchPackageNames: ["ghcr.io/zizmorcore/zizmor"],
+      minimumReleaseAge: null,
+      pinDigests: false,
+    },
+  ],
+}
