@@ -1,9 +1,6 @@
 # Discord Translator Bot
 
-> [!IMPORTANT]
-> This README was created by LLM
-
-このDiscord Botは、DeepL APIを使用してDiscordサーバー内のメッセージを複数の言語に自動的に翻訳するボットです。
+この Discord Bot は、DeepL API を使用して Discord サーバー内のメッセージを複数の言語に自動翻訳する。
 
 ## 機能
 
@@ -15,58 +12,66 @@
 
 ## セットアップ
 
-### 通常のセットアップ
+### Bun での起動
 
-1. リポジトリをクローン：
+mise をインストールした環境でリポジトリを取得し、`mise.toml` が指定する版の Bun と依存関係を準備する。
 
-   ``` sh
-   git clone https://github.com/FennelUmbelliferae/discord-translator-bot.git
-   cd discord-translator-bot
-   ```
+```sh
+git clone https://github.com/FennelUmbelliferae/discord-translator-bot.git
+cd discord-translator-bot
+mise trust
+mise install
+mise run setup
+```
 
-2. 必要な依存関係をインストール：
+生成された `.env` に Discord トークンと DeepL API Free のキーを設定する。
+Discord Developer Portal で Message Content Intent を有効にし、`bot` と `applications.commands` のスコープでボットを招待する。
+対象チャンネルには閲覧とメッセージ送信の権限が必要である。
 
-   ``` sh
-   npm install
-   ```
+| 環境変数 | 内容 |
+| --- | --- |
+| `DISCORD_TOKEN` | `NODE_ENV=production` で使う Discord トークン |
+| `DISCORD_TOKEN_TEST` | `NODE_ENV` が production 以外のときに使う Discord トークン |
+| `DEEPL_API_KEY` | DeepL API Free の認証キー（必須） |
+| `NODE_ENV` | `.env.example` では production |
+| `PORT` | ヘルスチェックのポート（既定値 3000） |
+| `CONFIG_PATH` | 設定ファイルの保存先（既定値 `data/config.json`） |
 
-3. `.env.example`ファイルを`.env`にリネームし、必要な環境変数を設定：
+コマンド登録は起動とは別に実行する。
+初回とコマンド定義を変更したときに、起動時と同じ環境変数でグローバル登録する。
 
-   ``` sh
-   DISCORD_TOKEN=your_discord_token_here
-   DEEPL_API_KEY=your_deepl_api_key_here
-   DISCORD_TOKEN_TEST=your_test_discord_token_here
-   NODE_ENV=production
-   ```
+```sh
+bun run register
+bun start
+```
 
-4. ボットを起動：
+開発時は `bun run dev`、検証は `bun run check` を使う。
+Bun が `.env` を読み込むため、dotenv は不要である。
 
-   ``` sh
-   npm start
-   ```
+### Docker での起動
 
-### Dockerを使用したセットアップ
+`.env` を設定したうえでイメージをビルドし、設定の保存先 `/app/data` に永続ボリュームをマウントする。
+ホストのディレクトリをバインドマウントする場合は、コンテナの `bun` ユーザーが書けるように所有者を 1000:1000 にする。
 
-1. リポジトリをクローン：
+```sh
+docker build -t discord-translator-bot .
+docker run --rm --env-file .env -p 3000:3000 -v translator-data:/app/data discord-translator-bot
+```
 
-   ``` sh
-   git clone https://github.com/FennelUmbelliferae/discord-translator-bot.git
-   cd discord-translator-bot
-   ```
+コンテナでコマンド登録する場合は `docker run --rm --env-file .env discord-translator-bot bun run src/registerCommands.ts` を実行する。
+`/health` は HTTP 200 と `OK`、それ以外は 404 を返す。
+SIGINT と SIGTERM を受けると Discord 接続と HTTP サーバーを終了する。
 
-2. `.env`ファイルを作成し、必要な環境変数を設定（上記の通常のセットアップの手順3を参照）。
+### 設定の保存と配布イメージ
 
-3. Dockerイメージをビルド：
+設定ファイルがない場合は、日本語と韓国語、スキッププレフィックス `;` を使う。
+設定変更コマンドを受けたときに、親ディレクトリと設定ファイルを作成する。
+不正なファイルはログに記録して既定値に戻り、設定変更コマンドを受けるまで元のファイルを保持する。
+旧版の設定を引き継ぐ場合は、起動前に旧 `config/config.json` を `CONFIG_PATH` の保存先へコピーする。
 
-   ``` sh
-   docker build -t discord-translator-bot .
-   ```
-
-4. コンテナを実行：
-
-   ``` sh
-   docker run --env-file .env discord-translator-bot
-   ```
+GitHub Release の公開時と手動実行時に、`ghcr.io/fennelumbelliferae/discord-translator-bot` へイメージを配布する。
+Release のタグは先頭の `v` を含めてそのまま使い、完全なコミット SHA でもタグを付ける。
+手動実行では完全なコミット SHA のタグだけを付ける。
 
 ## 使用方法
 
@@ -100,13 +105,15 @@
 
 ### 自動翻訳
 
-設定された言語に基づいて、ボットは自動的にチャンネル内のメッセージを翻訳します。翻訳されたメッセージは元のメッセージの直後に表示されます。
+設定された言語に基づいて、ボットは自動的にチャンネル内のメッセージを翻訳します。
+翻訳されたメッセージは元のメッセージの直後に表示されます。
 
 ### 翻訳のスキップ
 
-特定のメッセージを翻訳したくない場合は、メッセージの先頭に設定されたプレフィックス（デフォルトは`;`）を付けます。例：
+特定のメッセージを翻訳したくない場合は、メッセージの先頭に設定されたプレフィックス（デフォルトは`;`）を付けます。
+例：
 
-```
+```text
 ;このメッセージは翻訳されません
 ```
 
@@ -150,4 +157,5 @@
 
 ## ライセンス
 
-このプロジェクトはMITライセンスの下で公開されています。詳細については[LICENSE](https://github.com/FennelUmbelliferae/discord-translator-bot/blob/95c5c311d5ae6ea4b0bb553a7a86843527522122/LICENSE)ファイルを参照してください。
+このプロジェクトは MIT ライセンスの下で公開されている。
+詳細は [LICENSE](LICENSE) を参照する。

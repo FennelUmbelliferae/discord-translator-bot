@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "sortImports": true,
+  "sortPackageJson": true,
+  // Markdown は markdownlint-cli2 が整形するため対象外にする
+  "ignorePatterns": ["node_modules/", "dist/", "data/", "coverage/", "bun.lock", "**/*.md"],
+}

@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # bun の版が mise.toml (SSOT)、Dockerfile、bun.lock の bun-types で完全一致するか検証する。
+      # 開発と CI は mise.toml、本番は Dockerfile の base image が bun を決める。
+      # どちらも exact 指定を要求し、片側だけが浮動指定へ戻った時点で落とす。
+      - name: bun version drift check (mise SSOT)
+        run: |
+          mise_v=$(sed -nE 's/^bun[[:space:]]*=[[:space:]]*"([0-9]+\.[0-9]+\.[0-9]+)"[[:space:]]*$/\1/p' mise.toml)
+          docker_v=$(sed -nE 's#^FROM oven/bun:([0-9]+\.[0-9]+\.[0-9]+)-slim@.*#\1#p' Dockerfile | head -n1)
+          types_v=$(sed -nE 's/^[[:space:]]*"bun-types": \["bun-types@([0-9]+\.[0-9]+\.[0-9]+)".*/\1/p' bun.lock | head -n1)
+          echo "mise=$mise_v dockerfile=$docker_v bun-types=$types_v"
+          if [ -z "$mise_v" ] || [ -z "$docker_v" ] || [ -z "$types_v" ]; then
+            echo "::error::bun version must be pinned to an exact patch in mise.toml, Dockerfile and bun.lock"; exit 1
+          fi
+          if [ "$mise_v" != "$docker_v" ] || [ "$mise_v" != "$types_v" ]; then
+            echo "::error::bun version drift (mise=$mise_v dockerfile=$docker_v bun-types=$types_v)"; exit 1
+          fi
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          version: "2026.10.3"
+          install_args: bun
+      - run: bun install --frozen-lockfile
+      - run: bun run format:check
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run lint:md
+
+  actions-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: actionlint
+        run: |
+          docker run --rm -v "$PWD:/repo" --workdir /repo \
+            docker.io/rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color
+      - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: "1.30.1"
+          advanced-security: false
+          online-audits: false
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: docker build -t discord-translator-bot:ci .
+
+  # ブランチ保護は単一の必須チェック名 "ci" を要求する。ジョブを増減しても保護設定を触らずに済むよう、
+  # ここで全ジョブの結果を 1 つに束ねる。
+  ci:
+    runs-on: ubuntu-latest
+    needs: [quality, actions-security, docker-build]
+    if: always()
+    steps:
+      - name: verify all jobs succeeded
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "$RESULTS"
+          if echo "$RESULTS" | grep -Eq '"(failure|cancelled|skipped)"'; then
+            echo "::error::one or more required jobs did not succeed"; exit 1
+          fi
