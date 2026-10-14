@@ -57,6 +57,8 @@ jobs:
       # 取得側は digest で固定するが、タグの指す先が変わるとコミットとイメージの対応が崩れるため、
       # 付けるタグが 1 つでも既にあれば push の前に落とす。
       # 404 だけを「無い」と扱い、それ以外の応答 (認証失敗など) は存在を確かめられないので落とす。
+      # タグは 1 つずつ push されるので、push が途中で失敗するとタグの一部だけが残り、再実行はここで止まる。
+      # そのときは GHCR の package の画面でそのコミットの version を削除してから再実行する
       - name: Refuse to overwrite an existing tag
         env:
           TAGS: ${{ steps.metadata.outputs.tags }}
