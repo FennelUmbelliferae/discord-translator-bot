@@ -1,0 +1,125 @@
+name: Publish image to GHCR
+
+on:
+  # 本番は main に追従するので、Release ではなく main への push ごとに公開する
+  push:
+    branches: [main]
+  # main への push の公開が失敗したときのやり直しと、main 以外の ref の確認用。
+  # main 以外の ref は完全な SHA のタグだけを付け、デプロイ側が選ぶ main- のタグは付けない
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  IMAGE: ghcr.io/fennelumbelliferae/discord-translator-bot
+
+# 既存タグの確認から push までの間に別の実行が同じタグを push しないよう、同じコミットの実行を直列にする。
+# group を workflow 全体で 1 つにしないのは、待機できる実行が group ごとに 1 つで、後から来た実行が
+# 待機中の実行を取り消すため。続けて push された別のコミットの公開まで取り消されてしまう。
+# 同じコミットの実行どうしはタグが重なり、先の実行が push に成功すれば後の実行はどのみち失敗する
+concurrency:
+  group: publish-image-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # GHCR へのイメージの push
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # デプロイ側 (Flux の ImagePolicy) は main-<時刻>-<短い SHA> の時刻を数値で比べて最新を選ぶ。
+      # 時刻は実行の時刻ではなくコミットの committer date (UTC) にする。実行の時刻だと、失敗した古い
+      # push の実行を後から再実行したときに、古いコミットのイメージが最新として選ばれてしまう。
+      # metadata-action の commit_date は日付を得られないときに黙って現在時刻へ落ちるので、git から直接取る
+      - name: Compute the main tag
+        id: main-tag
+        run: |
+          ts=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d%H%M%S HEAD)
+          if ! [[ "$ts" =~ ^[0-9]{14}$ ]]; then
+            echo "::error::unexpected committer date: $ts"; exit 1
+          fi
+          echo "tag=main-${ts}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        id: metadata
+        with:
+          images: ${{ env.IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=raw,value=${{ steps.main-tag.outputs.tag }},enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,format=long,prefix=
+      # GHCR にはタグを書き換え不可にする設定がなく、push は既存タグを黙って別の digest へ付け替える。
+      # 取得側は digest で固定するが、タグの指す先が変わるとコミットとイメージの対応が崩れるため、
+      # 付けるタグが 1 つでも既にあれば push の前に落とす。
+      # 404 だけを「無い」と扱い、それ以外の応答 (認証失敗など) は存在を確かめられないので落とす。
+      - name: Refuse to overwrite an existing tag
+        env:
+          TAGS: ${{ steps.metadata.outputs.tags }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # shell を指定しない run は pipefail を有効にしないので、token 取得の curl の失敗を落とすために明示する
+          set -o pipefail
+          repo=${IMAGE#ghcr.io/}
+          # package がまだ無いときも pull の token は発行され、manifest は 404 を返す
+          token=$(curl -fsS -u "${GITHUB_ACTOR}:${GITHUB_TOKEN}" \
+            "https://ghcr.io/token?service=ghcr.io&scope=repository:${repo}:pull" | jq -er .token)
+          echo "::add-mask::$token"
+          exists=0
+          while IFS= read -r ref; do
+            [ -n "$ref" ] || continue
+            tag=${ref##*:}
+            code=$(curl -sS -o /dev/null --head -w '%{http_code}' \
+              -H "Authorization: Bearer $token" \
+              -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.docker.distribution.manifest.v2+json' \
+              "https://ghcr.io/v2/${repo}/manifests/${tag}")
+            case "$code" in
+              404) echo "$ref is not in the registry" ;;
+              200) echo "::error::$ref already exists in the registry"; exists=1 ;;
+              *) echo "::error::could not check $ref (HTTP $code)"; exit 1 ;;
+            esac
+          done <<< "$TAGS"
+          [ "$exists" -eq 0 ]
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        id: push
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          # 来歴は attest job が GitHub の署名付きで付ける。BuildKit 既定の来歴を重ねると
+          # イメージが attestation manifest を含む index になり、platform が unknown の manifest が並ぶ
+          provenance: false
+
+  # push と別の job にするのは、attestation だけが失敗したときに「失敗した job の再実行」で
+  # attestation だけをやり直せるようにするため。同じ job だと再実行は既存タグの確認で止まる
+  attest:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write # GHCR への attestation の push
+      id-token: write # Sigstore の署名用証明書を得る OIDC token
+      attestations: write # attestation をリポジトリに保存する
+    steps:
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ needs.publish.outputs.digest }}
+          push-to-registry: true
+          # storage record は organization 所有のリポジトリでしか作れず、artifact-metadata: write も要る
+          create-storage-record: false
