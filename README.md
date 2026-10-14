@@ -69,9 +69,11 @@ SIGINT と SIGTERM を受けると Discord 接続と HTTP サーバーを終了�
 不正なファイルはログに記録して既定値に戻り、設定変更コマンドを受けるまで元のファイルを保持する。
 旧版の設定を引き継ぐ場合は、起動前に旧 `config/config.json` を `CONFIG_PATH` の保存先へコピーする。
 
-GitHub Release の公開時と手動実行時に、`ghcr.io/fennelumbelliferae/discord-translator-bot` へイメージを配布する。
-Release のタグは先頭の `v` を含めてそのまま使い、完全なコミット SHA でもタグを付ける。
-手動実行では完全なコミット SHA のタグだけを付ける。
+main への push ごとに、`ghcr.io/fennelumbelliferae/discord-translator-bot` へイメージを配布する。
+タグは完全なコミット SHA と `main-<YYYYMMDDHHMMSS>-<SHA の先頭 7 文字>` の 2 つで、時刻はコミットの committer date (UTC) である。
+デプロイ側は `main-` のタグの時刻を数値で比べて最新の版を選ぶ。
+手動実行 (workflow_dispatch) でも配布でき、main 以外の ref では完全なコミット SHA のタグだけを付ける。
+すでにあるタグへの上書きは拒否する。
 
 ## 使用方法
 
